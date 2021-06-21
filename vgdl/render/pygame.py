@@ -33,13 +33,15 @@ class PygameRenderer:
         if headless:
             os.environ['SDL_VIDEODRIVER'] = 'dummy'
             self.screen = pygame.display.set_mode(self.display_dims)
-            self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            #self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            self.display = pygame.display.set_mode((self.display_dims))
             self.background = pygame.Surface(self.screen_dims)
         else:
             self.screen = pygame.Surface(self.screen_dims)
             self.screen.fill((255, 255, 255))
             self.background = self.screen.copy()
-            self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            #self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+            self.display = pygame.display.set_mode((self.display_dims))
             title_prefix = 'VGDL'
             title = title_prefix + ' ' + title if title else title_prefix
             if title:
@@ -145,16 +147,16 @@ class PygameRenderer:
         self.update_display()
 
 
-    def _resize_display(self, target_size):
-        # Doesn't actually work on quite a few systems
-        # https://github.com/pygame/pygame/issues/201
-        w_factor = target_size[0] / self.display_dims[0]
-        h_factor = target_size[1] / self.display_dims[1]
-        factor = min(w_factor, h_factor)
+    #def _resize_display(self, target_size):
+    #    # Doesn't actually work on quite a few systems
+    #    # https://github.com/pygame/pygame/issues/201
+    #    w_factor = target_size[0] / self.display_dims[0]
+    #    h_factor = target_size[1] / self.display_dims[1]
+    #    factor = min(w_factor, h_factor)
 
-        self.display_dims = (int(self.display_dims[0] * factor),
-                             int(self.display_dims[1] * factor))
-        self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
+    #    self.display_dims = (int(self.display_dims[0] * factor),
+    #                         int(self.display_dims[1] * factor))
+    #    self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
 
 
     def get_image(self):
