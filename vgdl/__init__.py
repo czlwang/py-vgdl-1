@@ -1,5 +1,5 @@
 from .registration import registry
-from .parser import VGDLParser
+from .parser import VGDLParser, indent_tree_parser
 
 # __all__ = ['VGDLParser', 'ontology', 'registry']
 
