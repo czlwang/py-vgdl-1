@@ -24,18 +24,28 @@ def is_int(s):
 
 games_path = "./vgdl/games"
 input_game = "aliens.txt"
+input_level = "aliens_lvl0.txt"
 output_game = "aliens_v2.txt"
 
 input_path = os.path.join(games_path, input_game)
 with open(input_path) as f:
     gamefile = f.read()
 
+level_path = os.path.join(games_path, input_level)
+with open(level_path) as f:
+    levelfile = f.read()
+
 game = vgdl.VGDLParser().parse_game(gamefile)
+level = game.build_level(levelfile)
+print(level.sprite_registry.sprite_keys)
+print(level.init_state.data['sprites'].keys())
+
 tree = vgdl.indent_tree_parser(gamefile, tabsize=4).children[0]
 
 output_path = os.path.join(games_path, output_game)
 interaction_set = next(filter(lambda x: x.content=="InteractionSet", tree.children))
 interaction_set = interaction_set.children
+
 
 #mutate all the numerical values (just fudge them by 1 for now)
 for inode in interaction_set:
