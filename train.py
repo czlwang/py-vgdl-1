@@ -6,8 +6,11 @@ from vgdl.util.humanplay.play_vgdl import register_vgdl_env
 domain_file = 'vgdl/games/aliens.txt'
 level_file = 'vgdl/games/aliens_lvl0.txt'
 env_name = register_vgdl_env(domain_file, level_file, 'image', 5)
+#env_name = register_vgdl_env(domain_file, level_file, 'features', 10)
 env = gym.make(env_name)
+#check_env(env)
 # Render once to initialize the viewer
 env.render(mode='human')
+env.close()
 
 model = PPO('MlpPolicy', env, verbose=1).learn(10000)
