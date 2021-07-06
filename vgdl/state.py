@@ -21,7 +21,16 @@ class KeyValueObservation(PrettyDict, OrderedDict, Observation):
     """
 
     def as_array(self):
-        return np.array(list(self.values()))
+        state_values = self.values()
+        state_list = []
+        for v in state_values:
+            if isinstance(v,list):
+                state_list += v
+            elif isinstance(v,tuple):
+                state_list += [x for x in v]
+            elif isinstance(v,int):
+                state_list.append(v)
+        return np.array(list(state_list))
 
     def as_dict(self):
         return self
