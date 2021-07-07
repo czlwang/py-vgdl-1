@@ -30,7 +30,7 @@ def train(model, domain_file, level_file, observer='image',
 
     if observer=='image':
         env.render(mode='human')
-        env.close()
+        #env.close()
 
     callback = SaveOnBestTrainingRewardCallback(check_freq=1000, save_dir=save_dir)
     model = PPO(model, env, verbose=1, tensorboard_log=log_dir)
