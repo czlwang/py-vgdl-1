@@ -85,9 +85,22 @@ one of several standard interfaces:
 Read ahead to figure out how best to get started with either.
 
 ## Training
+Install pyyaml and tensorboard:
+```bash
+pip install PyYAML
+pip install tensorboard
+```
+
+Edit the config file as necessary and run training:
 ```bash
 python3 train.py config.yml
 ```
+
+Track progress by running:
+```bash
+tensorboard --logdir <log_dir> --port=<port> --bind_all
+```
+and navigating to `victoria.csail.mit.edu:<port>`
 
 ## Getting Started
 
