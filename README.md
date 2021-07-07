@@ -84,6 +84,11 @@ one of several standard interfaces:
 
 Read ahead to figure out how best to get started with either.
 
+## Training
+```bash
+python3 train.py config.yml
+```
+
 ## Getting Started
 
 Example code is included that relies on VGDL's Gym interface

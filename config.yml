@@ -3,4 +3,5 @@ level_file: 'vgdl/games/aliens_lvl0.txt'
 model: 'MlpPolicy'
 steps: 10000
 observer: 'features'
-
+save_dir: "output"
+log_dir: "runs"
