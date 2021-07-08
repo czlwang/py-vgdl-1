@@ -12,6 +12,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
+os.environ["SDL_VIDEODRIVER"] = "dummy"
 
 arg_file = sys.argv[1]
 with open(arg_file, 'r') as f:
