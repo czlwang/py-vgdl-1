@@ -6,7 +6,7 @@ import transformers
 
 tokenizer =  transformers.BertTokenizer.from_pretrained('bert-base-uncased')
 
-base_path = '/Users/vsubramaniam/Documents/Infolab/Games/py-vgdl-1/vgdl/games'
+base_path = '/storage/vsub851/py-vgdl-1/vgdl/games'
 game = 'aliens'
 
 def load_vgdl(input_path, game):
@@ -50,7 +50,11 @@ def build_dataset(rule_dict):
 		else:
 			label = 3
 		for d in rule_dict[key]:
-			dataset.append((d, label))
+			input_ids = d['input_ids']
+			labels = []
+			for i in range(len(input_ids)):
+				labels.append(label)
+			dataset.append((d, labels))
 	return dataset
 
 def test_data_loader(input_path, game, rule_type = None):
@@ -61,15 +65,15 @@ def test_data_loader(input_path, game, rule_type = None):
 	if rule_type is not None:
 		rules = rule_dict[rule_type]
 		tokenized_rules = tokenize_rules(rules)
-		print(tokenized_rules)
+		# print(tokenized_rules)
 	else:
 		for rule_type in rule_dict:
 			tokenized_rule_dict[rule_type] = tokenize_rules(rule_dict[rule_type])
-		print(tokenized_rule_dict)
+		# print(tokenized_rule_dict)
 
 	if tokenized_rule_dict:
 		rule_dict = tokenized_rule_dict
-	dataset = build_dataset(rule_dict)
-	print(dataset)
+		dataset = build_dataset(rule_dict)
+	# print(dataset)
 
 # test_data_loader(base_path, game)
