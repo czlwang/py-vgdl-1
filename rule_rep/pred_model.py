@@ -16,19 +16,17 @@ else:
 # lm_pretrained = transformers.BertModel.from_pretrained('bert-base-uncased').to(device)
 
 class MLP(nn.Module):
-	def __init__(self, num_labels, dropout = 0.25, lm = None):
+	def __init__(self, num_labels, dropout = 0.25, lm = None, hidden_size = 200):
 		super(MLP, self).__init__()
 		self.lm = lm
 		self.dropout = nn.Dropout(dropout)
 		self.linear = nn.Linear(lm.config.hidden_size, num_labels)
-		self.relu = nn.ReLU()
+		# self.linear2 = nn.Linear(hidden_size, num_labels)
 	def forward(self, input_ids = None, attention_mask = None, layer = -1):
 		lm_output = self.lm(input_ids, attention_mask, output_hidden_states = True)
 		hidden_states = lm_output.hidden_states[layer]
-		# print(hidden_states.size())
 		hidden_states = self.dropout(hidden_states)
 		output = self.linear(hidden_states)
-		# print(output.size())
-		output = self.relu(output)
+		# output = self.linear2(output)
 		output = output.squeeze(0)
 		return output

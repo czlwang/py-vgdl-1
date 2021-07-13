@@ -23,14 +23,14 @@ else:
 	device = 'cpu'
 
 base_path = '/storage/vsub851/py-vgdl-1'
-game = 'aliens'
+games = ['aliens']
 modelname = 'mlp1.pt'
 lm_pretrained = transformers.BertModel.from_pretrained('bert-base-uncased').to(device)
 
-def train_model(train_data, modelname, base_path, num_labels, lr = 0.05, dropout = 0.25, num_epochs = 10, lm = None, bert_layer = -1):
+def train_model(train_data, modelname, base_path, num_labels, lr = 0.05, dropout = 0.25, num_epochs = 10, lm = None, bert_layer = -1, hidden_size = 200):
 	loss_fn = nn.CrossEntropyLoss().to(device)
 
-	classifier = MLP(num_labels, dropout, lm)
+	classifier = MLP(num_labels, dropout, lm, hidden_size)
 	classifier = classifier.to(device)
 	classifier.train()
 
@@ -64,22 +64,31 @@ def train_model(train_data, modelname, base_path, num_labels, lr = 0.05, dropout
 	save_path = os.path.join(base_path, 'rule_rep', 'checkpoints', modelname)
 	torch.save(classifier.state_dict(), save_path)
 
-def test_train(base_path, modelname, game, num_labels, lr = 0.05, dropout = 0.25, num_epochs = 10, lm = None, bert_layer = -1):
-	print('Beginning data loading from game {}'.format(game))
+def test_train(base_path, modelname, games, num_labels, lr = 0.05, dropout = 0.25, num_epochs = 10, lm = None, bert_layer = -1, hidden_size = 200):
+	print('Beginning data loading from games {}'.format(games))
 	game_path = os.path.join(base_path, 'vgdl', 'games')
-	rule_dict = load_vgdl(game_path, game)
+	rule_dicts = load_vgdl(game_path, games)
 
 	tokenized_rule_dict = {}
-	for rule_type in rule_dict:
-		tokenized_rule_dict[rule_type] = tokenize_rules(rule_dict[rule_type])
-	# print(tokenized_rule_dict)
-	dataset = build_dataset(tokenized_rule_dict)
-	# for rule_dict, _ in dataset:
-	# 	input_ids = rule_dict['input_ids']
-	# 	print(len(input_ids))
+	if rule_type is not None:
+		rules = []
+		for rule_dict in rule_dicts:
+			rules = rules + rule_dict[rule_type]
+		tokenized_rules = tokenize_rules(rules)
+	else:
+		for rule_dict in rule_dicts:
+			for rule_type in rule_dict:
+				try:
+					tokenized_rule_dict[rule_type] += tokenize_rules(rule_dict[rule_type])
+				except KeyError:
+					tokenized_rule_dict[rule_type] = tokenize_rules(rule_dict[rule_type])
+
+	if tokenized_rule_dict:
+		rule_dict = tokenized_rule_dict
+		dataset = build_dataset(rule_dict)
 	random.shuffle(dataset)
 	print('Data loading complete and dataset built')
 
-	train_model(dataset, modelname, base_path, num_labels, lr, dropout, num_epochs, lm, bert_layer)
+	train_model(dataset, modelname, base_path, num_labels, lr, dropout, num_epochs, lm, bert_layer, hidden_size)
 
-test_train(base_path, modelname, game, num_labels = 4, lm = lm_pretrained)
+# test_train(base_path, modelname, games, num_labels = 4, lm = lm_pretrained)
