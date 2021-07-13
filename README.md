@@ -93,7 +93,7 @@ pip install tensorboard
 
 Edit the config file as necessary and run training:
 ```bash
-python3 train.py config.yml
+python3 train.py --config=config.yml
 ```
 
 Track progress by running:
