@@ -3,6 +3,7 @@ import os
 import gym
 import yaml #pip install pyyaml
 import numpy as np
+import configargparse
 
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
@@ -10,13 +11,22 @@ from vgdl.util.humanplay.play_vgdl import register_vgdl_env
 from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.results_plotter import load_results, ts2xy, plot_results
+from stable_baselines3.common.evaluation import evaluate_policy
 
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 os.environ["SDL_VIDEODRIVER"] = "dummy"
 
-arg_file = sys.argv[1]
-with open(arg_file, 'r') as f:
-    cfg = yaml.load(f, yaml.SafeLoader)
+#parse command line arguments
+parser = configargparse.ArgumentParser()
+parser.add_argument("-c", "--config", is_config_file=True)
+parser.add_argument('--domain_file', type=str, help='path to the VGDL game file')
+parser.add_argument('--level_file', type=str, help='path to the VGDL game level file')
+parser.add_argument('--model', type=str, help='model type')
+parser.add_argument('--observer', type=str, help='observation type')
+parser.add_argument('--save_dir', type=str, help='path to save model at')
+parser.add_argument('--log_dir', type=str, help='path to save logs')
+parser.add_argument('--steps', type=int, help='number of training steps')
+args = parser.parse_args()
 
 def train(model, domain_file, level_file, observer='image', 
           blocksize = 5, steps = 10000, log_dir=None, save_dir=None):
@@ -34,8 +44,21 @@ def train(model, domain_file, level_file, observer='image',
         #env.close()
 
     callback = SaveOnBestTrainingRewardCallback(check_freq=1000, save_dir=save_dir)
-    model = PPO(model, env, verbose=1, tensorboard_log=log_dir)
-    model.learn(steps, callback=callback)
+    model = PPO(model, env, verbose=1, tensorboard_log=log_dir,
+                create_eval_env=True) 
+    model.learn(steps, callback=callback, eval_freq=1000, 
+                n_eval_episodes=5, 
+                eval_log_path="./logs/")
+    
+    policy = model.policy
+    env = model.get_env()
+    mean_reward, std_reward = evaluate_policy(policy, env, n_eval_episodes=10, deterministic=True)
+
+    print(f"mean_reward={mean_reward:.2f} +/- {std_reward}")
+
+    with open("mean_rewards.txt", "a") as f:
+        f.write(f"{domain_file} mean_reward={mean_reward:.2f} +/- {std_reward}")
+    return model
 
 class SaveOnBestTrainingRewardCallback(BaseCallback):
     """
@@ -84,12 +107,12 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
         return True
 
 # Create log and save dirs
-save_dir = cfg["save_dir"]
+save_dir = args.save_dir
 os.makedirs(save_dir, exist_ok=True)
-log_dir = cfg["log_dir"]
+log_dir = args.log_dir
 os.makedirs(log_dir, exist_ok=True)
 
-train(cfg["model"], cfg["domain_file"], 
-      cfg["level_file"], observer=cfg["observer"],
-      steps=cfg["steps"], log_dir=log_dir,
+train(args.model, args.domain_file, 
+      args.level_file, observer=args.observer,
+      steps=args.steps, log_dir=log_dir,
       save_dir=save_dir)
