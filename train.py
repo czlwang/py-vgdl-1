@@ -5,7 +5,7 @@ import yaml #pip install pyyaml
 import numpy as np
 import configargparse
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, DQN
 from stable_baselines3.common.env_checker import check_env
 from vgdl.util.humanplay.play_vgdl import register_vgdl_env
 from stable_baselines3.common.callbacks import BaseCallback
@@ -26,28 +26,41 @@ parser.add_argument('--observer', type=str, help='observation type')
 parser.add_argument('--save_dir', type=str, help='path to save model at')
 parser.add_argument('--log_dir', type=str, help='path to save logs')
 parser.add_argument('--steps', type=int, help='number of training steps')
+parser.add_argument('--algo', type=str, help='training algorithm, ex: PPO, DQN')
+parser.add_argument('--name', type=str, help='name of the run')
 args = parser.parse_args()
 
-def train(model, domain_file, level_file, observer='image', 
-          blocksize = 5, steps = 10000, log_dir=None, save_dir=None):
+def train(args):
     '''Training function, includes domain file with VGDL rules and 
        designed level to render environment from.'''
 
+    domain_file = args.domain_file
+    level_file = args.level_file
     env_name = register_vgdl_env(domain_file, level_file, 
-                                 observer, blocksize)
+                                 args.observer, blocksize=5)
 
     env = gym.make(env_name)
+    save_dir = args.save_dir
     env = Monitor(env, save_dir)
 
-    if observer=='image':
+    if args.observer=='image':
         env.render(mode='human')
         #env.close()
 
     callback = SaveOnBestTrainingRewardCallback(check_freq=1000, save_dir=save_dir)
-    model = PPO(model, env, verbose=1, tensorboard_log=log_dir,
-                create_eval_env=True) 
-    model.learn(steps, callback=callback, eval_freq=1000, 
-                n_eval_episodes=5, 
+    
+    algos = {"PPO":PPO, "DQN":DQN}
+    algo = algos[args.algo]
+    log_dir = args.log_dir
+    model = algo(args.model, env, verbose=1, tensorboard_log=log_dir,
+                  create_eval_env=True) 
+
+    name = args.name
+    if args.name is None:
+       name = algo
+
+    model.learn(args.steps, callback=callback, eval_freq=1000, 
+                tb_log_name=name, n_eval_episodes=5, 
                 eval_log_path="./logs/")
     
     policy = model.policy
@@ -112,7 +125,4 @@ os.makedirs(save_dir, exist_ok=True)
 log_dir = args.log_dir
 os.makedirs(log_dir, exist_ok=True)
 
-train(args.model, args.domain_file, 
-      args.level_file, observer=args.observer,
-      steps=args.steps, log_dir=log_dir,
-      save_dir=save_dir)
+train(args)
