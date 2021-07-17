@@ -1,0 +1,69 @@
+SpriteSet
+class background(Immovable):
+	def __init__(self):
+		self.img = oryx/space1
+		self.hidden = True
+class base(Immovable):
+	def __init__(self):
+		self.color = WHITE
+		img = oryx/space5
+class avatar(FlakAvatar):
+	def __init__(self):
+		stype = sam
+		img = oryx/spaceship1
+class missile(Missile):
+	class sam(Missile):
+		def __init__(self):
+			orientation = UP
+			color = BLUE
+			singleton = True
+			img = oryx/bullet2
+	class bomb(Missile):
+		def __init__(self):
+			orientation = DOWN
+			color = RED
+			speed = 0.5
+class alien(Bomber):
+	class alienGreen(Bomber):
+		def __init__(self):
+			img = oryx/alien3
+	class alienBlue(Bomber):
+		def __init__(self):
+			img = oryx/alien1
+class portal():
+	def __init__(self):
+		invisible = True
+		hidden = True
+	class portalSlow(SpawnPoint):
+		stype = alienBlue
+		cooldown = 16
+		total = 20
+	class portalFast(SpawnPoint):
+		stype = alienGreen
+		cooldown = 12
+		total = 20
+TerminationSet
+s1 = SpriteCounter(stype=avatar, limit = 0, win = False)
+s2 = MultiSpriteCounter(stype1 = portal, stype2 = alien, limit = 0, win = True)
+InteractionSet
+def interaction1(a:avatar, e:EOS):
+	return stepBack(a, e)
+def interaction2(a:alien, e:EOS):
+	return turnAround(a, e)
+def interaction3(m:missile, e:EOS):
+	return killSprite(m, e)
+def interaction4(b1:base, b2:bomb):
+	return killBoth(b1, b2)
+def interaction5(b: base, s:sam):
+	return killBoth(b, s)
+def interaction6(b:base, a:alien):
+	return killSprite(b, a)
+def interaction7(a1:avatar, a2:alien):
+	scoreChange-=1
+	return killSprite(a1, a2)
+def interaction8(a: avatar, b:bomb):
+	scoreChange-=1
+	return killSprite(a, b)
+def interaction9(a:alien, s:sam):
+	scoreChange += 2
+	return killSprite(a, s)
