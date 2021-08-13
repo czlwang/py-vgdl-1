@@ -25,7 +25,11 @@ class PygameRenderer:
         # Likewise screen and display are interchangeable, for now.
         # I think it'd be good to allow resizing, just keep screen the same
         # and scale onto the resized display
-        self.display_dims = self.screen_dims
+        #self.display_dims = self.screen_dims
+
+        w, h = self.screen_dims
+        #TODO change hardcode
+        self.display_dims = (w + 100, h)
 
         # The screen surface will be used for drawing on
         # It will be displayed on the `display` surface, possibly magnified
@@ -63,6 +67,10 @@ class PygameRenderer:
 
     def update_display(self):
         # TODO this could be quicker for headless
+        graphImg = pygame.image.load('test.gv.png')
+        graphImg = pygame.transform.scale(graphImg, (100, self.display_dims[1]))
+        rect = graphImg.get_rect()
+        self.screen.blit(graphImg, rect)
         pygame.transform.scale(self.screen, self.display_dims, self.display)
         pygame.display.update()
 
@@ -80,6 +88,7 @@ class PygameRenderer:
     def draw_sprite(self, sprite):
         sprite_rect = self.calculate_render_rect(sprite.rect, sprite.shrinkfactor)
 
+        #import pdb; pdb.set_trace()
         if self.render_sprites and sprite.img:
             # assert sprite.shrinkfactor == 0, 'TODO implement shrinking sprites'
             block_size = int((1-sprite.shrinkfactor) * self.block_size)
