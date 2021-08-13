@@ -1,9 +1,11 @@
+import graphviz
 import sys
 import time
 import itertools
 import numpy as np
 import importlib
 import logging
+import requests
 logger = logging.getLogger(__name__)
 
 import gym
@@ -41,6 +43,21 @@ class HumanController:
             obs, reward, done, info = self.env.step(self.controls.current_action)
             if reward:
                 logger.debug("reward %0.3f" % reward)
+
+            ### <TODO>: make this more general
+            data = {"machine":{"graph":{"vertices":{"103":{"nodeTy":{"tag":"Pool","activation":"Interactive","pushPullAction":{"tag":"Pushing","contents":"PushAll"},"resources":[{"tag":"Black","uUID":"54e06756-cc2b-4fd7-8b51-17e0a25fa409"},{"tag":"Black","uUID":"5ca49fbe-9c76-44e9-9a0f-d5d06bffe029"},{"tag":"Black","uUID":"8748b9aa-b01a-44fc-b016-c6eac0068b40"},{"tag":"Black","uUID":"d3e82ac8-cdfb-4d37-a2b0-4ee112028372"},{"tag":"Black","uUID":"e0b08b9e-5fe3-4019-b823-0b2ca977d334"}],"overflow":"OverflowBlock"},"nodeLabel":"","nodeColor":"black"},"104":{"nodeTy":{"tag":"Pool","limit":5,"activation":"Passive","pushPullAction":{"tag":"Pulling","contents":"PullAny"},"resources":[],"overflow":"OverflowBlock"},"nodeLabel":"","nodeColor":"black"}},"resourceEdges":{"105":{"from":103,"to":104,"resourceFormula":{"tag":"RFConstant","contents":1},"interval":{"formula":{"tag":"RFConstant","contents":1},"counter":0},"transfer":"IntervalTransfer","shuffleOrigin":False,"limits":{}}},"stateEdges":{}},"resourceTagColor":{},"time":0,"seed":0,"pendingTriggers":[]},"activeNodes":[103]}
+            response = requests.post('http://localhost:8000/api/run', json=data).json()
+
+            #print(response)
+
+            machine = response["machine"]
+
+            response = requests.post("http://localhost:8000/api/render", json=machine)
+            #print(response.text)
+            temp = "digraph {\n  graph  [labelloc=bottom,labeljust=left,fontsize=\"10\",label=\"step=0\"];\n  \"103\" [shape=circle,peripheries=\"2\",label=<5<SUB>p&amp;</SUB>>,labelfontcolor=Black,color=black];\n  \"104\" [shape=circle,peripheries=\"1\",label=<0>,labelfontcolor=black,color=black];\n  \"105\" [label=<1>,peripheries=\"1\",color=black,shape=septagon];\n  \"103\" -> \"105\" [color=black];\n  \"105\" -> \"104\" [color=black];\n}"
+            s = graphviz.Source(temp, filename="test.gv", format="png")
+            #s.view()
+            ### </TODO>
 
             self.cum_reward += reward
             window_open = self.env.render()
