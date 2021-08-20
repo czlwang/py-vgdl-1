@@ -1,7 +1,11 @@
+import graphviz
 import copy
 import inspect
 import logging
 import random
+import requests
+import json
+
 from collections import defaultdict, UserDict, deque
 from functools import partial
 from typing import NewType, Optional, Union, Dict, List, Tuple, Generator
@@ -620,6 +624,28 @@ class BasicGameLevel:
         self.ended = False
 
         self.last_state = None
+        self.m_host = None
+
+    def load_mach(self, mach_host):
+        self.m_host = mach_host.strip('/')
+
+        with open('xml_data.txt', 'r') as f:
+            lines = f.readlines()
+
+        headers = {
+            'accept': 'application/json;charset=utf-8',
+            'Content-Type': 'application/json;charset=utf-8',
+        }
+
+        xml = lines[0].replace("\\","")
+        data = {"xmlContents":xml}
+
+        response = requests.post(f'{self.m_host}/api/convertxml', json=data, headers=headers)
+        prev_r = 0
+        run_data = response.json()
+        run_data["activeNodes"] = []
+        self.run_data = run_data
+        #import pdb; pdb.set_trace()
 
     def set_seed(self, seed):
         self.seed = seed
@@ -773,9 +799,30 @@ class BasicGameLevel:
             if k in ['sprites']: continue
             setattr(self, k, v)
 
+    def _send_to_mach(self, collisions):
+        #if len(collisions) > 0:
+        #    import pdb; pdb.set_trace()
+        if True:
+            self.run_data["activeNodes"] = [103]
+        else:
+            self.run_data["activeNodes"] = []
+        response = requests.post(f'{self.m_host}/api/run', json=self.run_data).json()
+
+        machine = response["machine"]
+
+        self.run_data["machine"] = machine
+        response = requests.post(f'{self.m_host}/api/render', json=machine)
+        temp = response.text
+        temp = temp.replace("\\n","")
+        temp = temp.replace("\\","")
+        temp = temp[1:-1] #strip quotes
+        s = graphviz.Source(temp, filename="test.gv", format="png")
+        s.render()
+
     def _event_handling(self):
         # TODO refactor lastcollisions, it doesn't seem very useful anymore
         # stype -> sprites
+        collisions = []
         self.lastcollisions: Dict[str, List['VGDLSprite']] = {}
         ss = self.lastcollisions
         for effect in self.domain.collision_eff:
@@ -829,7 +876,8 @@ class BasicGameLevel:
             #     print(len(sprites), '>', len(others))
 
             for sprite in sprites:
-                for collision_i in sprite.rect.collidelistall(others):
+                collision_list = sprite.rect.collidelistall(others) 
+                for collision_i in collision_list:
                     other = others[collision_i]
 
                     if sprite is other:
@@ -840,6 +888,15 @@ class BasicGameLevel:
                     self.add_score(effect.score)
                     if sprite not in self.kill_list:
                         effect(sprite, other, self)
+                        collisions.append((sprite, other))
+
+        formatted_col = []
+
+        for c in collisions:
+            sprite, other = c
+            formatted_col.append({"actor":{"uuid": sprite.id, "stype": g1},
+                                  "actee":{"uuid": other.id,  "stype": g2}})
+        return formatted_col
 
     def add_score(self, score):
         self.score += score
@@ -915,7 +972,9 @@ class BasicGameLevel:
             s.update(self)
 
         # Handle Collision Effects
-        self._event_handling()
+        collisions = self._event_handling()
+
+        self._send_to_mach(collisions)
 
         # Iterate Over Termination Criteria
         self._check_terminations()

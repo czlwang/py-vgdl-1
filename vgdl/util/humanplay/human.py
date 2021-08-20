@@ -1,21 +1,20 @@
-import graphviz
 import sys
 import time
 import itertools
 import numpy as np
 import importlib
 import logging
-import requests
-import json
 logger = logging.getLogger(__name__)
 
 import gym
 
 
 class HumanController:
-    def __init__(self, env_name, trace_path=None, fps=15):
+    def __init__(self, env_name, trace_path=None, fps=15, machinations_host=""):
         self.env_name = env_name
         self.env = gym.make(env_name)
+        self.env.load_mach(machinations_host.strip('/'))
+        #import pdb; pdb.set_trace()
         if not env_name.startswith('vgdl'):
             logger.debug('Assuming Atari env, enable AtariObservationWrapper')
             from .wrappers import AtariObservationWrapper
@@ -32,23 +31,6 @@ class HumanController:
 
     def play(self, pause_on_finish=False, pause_on_start=False):
         self.env.reset()
-
-        #with open('xml_data.txt', 'r') as f:
-        #    lines = f.readlines()
-
-        #headers = {
-        #    'accept': 'application/json;charset=utf-8',
-        #    'Content-Type': 'application/json;charset=utf-8',
-        #}
-
-        #print(lines[0])
-        #data = {"xmlContents":""}
-
-        #response = requests.post('http://localhost:8000/api/convertxml', data=data, headers=headers)
-        #print(response.text)
-        prev_r = 0
-        run_data = {"machine":{"graph":{"vertices":{"103":{"nodeTy":{"tag":"Pool","activation":"Interactive","pushPullAction":{"tag":"Pushing","contents":"PushAll"},"resources":[{"tag":"Black","uUID":"54e06756-cc2b-4fd7-8b51-17e0a25fa409"},{"tag":"Black","uUID":"5ca49fbe-9c76-44e9-9a0f-d5d06bffe029"},{"tag":"Black","uUID":"8748b9aa-b01a-44fc-b016-c6eac0068b40"},{"tag":"Black","uUID":"d3e82ac8-cdfb-4d37-a2b0-4ee112028372"},{"tag":"Black","uUID":"e0b08b9e-5fe3-4019-b823-0b2ca977d334"}],"overflow":"OverflowBlock"},"nodeLabel":"","nodeColor":"black"},"104":{"nodeTy":{"tag":"Pool","limit":5,"activation":"Passive","pushPullAction":{"tag":"Pulling","contents":"PullAny"},"resources":[],"overflow":"OverflowBlock"},"nodeLabel":"","nodeColor":"black"}},"resourceEdges":{"105":{"from":103,"to":104,"resourceFormula":{"tag":"RFConstant","contents":1},"interval":{"formula":{"tag":"RFConstant","contents":1},"counter":0},"transfer":"IntervalTransfer","shuffleOrigin":False,"limits":{}}},"stateEdges":{}},"resourceTagColor":{},"time":0,"seed":0,"pendingTriggers":[]},"activeNodes":[]}
-
         for step_i in itertools.count():
             if pause_on_start:
                 self.controls.pause = True
@@ -60,37 +42,6 @@ class HumanController:
             obs, reward, done, info = self.env.step(self.controls.current_action)
             if reward:
                 logger.debug("reward %0.3f" % reward)
-
-            ### <TODO>: make this more general
-
-            if reward - prev_r > 0:
-                run_data["activeNodes"] = [103]
-            else:
-                run_data["activeNodes"] = []
-            prev_r = reward
-            response = requests.post('http://localhost:8000/api/run', json=run_data).json()
-
-            #print(response)
-
-            machine = response["machine"]
-
-            run_data["machine"] = machine
-            response = requests.post("http://localhost:8000/api/render", json=machine)
-            temp = response.text
-            print(response.text)
-            temp = temp.replace("\\n","")
-            temp = temp.replace("\\","")
-            temp = temp[1:-1] #strip quotes
-            #import pdb; pdb.set_trace()
-            print(temp)
-            #temp2 = 'digraph {  graph  [labelloc=bottom,labeljust=left,fontsize="10",label="step=1"];  "103" [shape=circle,peripheries="1",label=<3<SUP>*</SUP><SUB>p&amp;</SUB>>,labelfontcolor=Black,color=black];  "104" [shape=circle,peripheries="1",label=<2>,labelfontcolor=Black,color=black];  "105" [label=<1>,peripheries="1",color=black,shape=septagon];  "103" -> "105" [color=black];  "105" -> "104" [color=black];}'
-            #for i in range(len(temp2)):
-            #    print(temp2[i], temp[i], temp2[i]==temp[i])
-            #print(temp2)
-            #print(temp==temp2)
-            s = graphviz.Source(temp, filename="test.gv", format="png")
-            s.render()
-            ### </TODO>
 
             self.cum_reward += reward
             window_open = self.env.render()
@@ -149,7 +100,7 @@ class HumanController:
 
 
 class HumanAtariController(HumanController):
-    def __init__(self, env_name, *args):
+    def __init__(self, env_name, *args, **kwargs):
         super().__init__(env_name, *args)
 
         from .controls import AtariControls
@@ -164,8 +115,8 @@ class HumanAtariController(HumanController):
 
 
 class HumanVGDLController(HumanController):
-    def __init__(self, env_name, *args):
-        super().__init__(env_name, *args)
+    def __init__(self, env_name, *args, **kwargs):
+        super().__init__(env_name, *args, **kwargs)
 
         from .controls import VGDLControls
         self.controls = VGDLControls(self.env.unwrapped.get_action_meanings())

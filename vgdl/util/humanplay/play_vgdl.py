@@ -86,7 +86,7 @@ def main():
     os.makedirs(args.tracedir, exist_ok=True)
 
     controller_cls = HumanVGDLController
-    controller = controller_cls(env_name, args.tracedir)
+    controller = controller_cls(env_name, args.tracedir, machinations_host="http://localhost:8000")
 
     for epoch_i in range(args.reps):
         window_open = controller.play(args.pause_on_finish)
