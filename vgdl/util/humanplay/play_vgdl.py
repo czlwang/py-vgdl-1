@@ -49,6 +49,8 @@ def main():
     parser.add_argument('--blocksize', '-b', default=24, type=int,
                         help='Render block size [default 24]')
     parser.add_argument('--tracedir', type=str)
+    parser.add_argument('--machinations_host', type=str, help="Machinations host server")
+    parser.add_argument('--graph_xml_path', type=str, help="path to machinations graph xml")
     parser.add_argument('--pause_on_finish', dest='pause_on_finish',
                         action='store_true', default=False)
 
@@ -86,7 +88,7 @@ def main():
     os.makedirs(args.tracedir, exist_ok=True)
 
     controller_cls = HumanVGDLController
-    controller = controller_cls(env_name, args.tracedir, machinations_host="http://localhost:8000")
+    controller = controller_cls(env_name, args.tracedir, machinations_host=args.machinations_host, graph_xml=args.graph_xml_path)
 
     for epoch_i in range(args.reps):
         window_open = controller.play(args.pause_on_finish)

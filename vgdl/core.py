@@ -551,6 +551,7 @@ class BasicGame:
                 key = self.char_mapping.get(c, None)
                 if key is not None:
                     pos = (col * self.block_size, row * self.block_size)
+                    #import pdb; pdb.set_trace()
                     level.create_sprites(key, pos)
 
         # TODO find a prettier way to drop this, should be after creating
@@ -626,10 +627,10 @@ class BasicGameLevel:
         self.last_state = None
         self.m_host = None
 
-    def load_mach(self, mach_host):
+    def load_mach(self, mach_host, xml_graph_path):
         self.m_host = mach_host.strip('/')
 
-        with open('xml_data.txt', 'r') as f:
+        with open(xml_graph_path, 'r') as f:
             lines = f.readlines()
 
         headers = {
@@ -637,7 +638,8 @@ class BasicGameLevel:
             'Content-Type': 'application/json;charset=utf-8',
         }
 
-        xml = lines[0].replace("\\","")
+        #xml = lines[0].replace("\\","") #not necessary if we do this beforehand
+        xml = " ".join(lines)
         data = {"xmlContents":xml}
 
         response = requests.post(f'{self.m_host}/api/convertxml', json=data, headers=headers)
@@ -645,7 +647,6 @@ class BasicGameLevel:
         run_data = response.json()
         run_data["activeNodes"] = []
         self.run_data = run_data
-        #import pdb; pdb.set_trace()
 
     def set_seed(self, seed):
         self.seed = seed
@@ -799,23 +800,21 @@ class BasicGameLevel:
             if k in ['sprites']: continue
             setattr(self, k, v)
 
-    def _send_to_mach(self, collisions):
-        #if len(collisions) > 0:
-        #    import pdb; pdb.set_trace()
-        if True:
-            self.run_data["activeNodes"] = [103]
-        else:
-            self.run_data["activeNodes"] = []
-        response = requests.post(f'{self.m_host}/api/run', json=self.run_data).json()
-
+    def _send_to_mach(self, collisions, events):
+        self.run_data["activeNodes"] = [] #should always be empty
+        self.run_data["collisions"] = collisions
+        self.run_data["events"] = events 
+        response = requests.post(f'{self.m_host}/api/run', json=self.run_data)
+        print(response._content)
+        response = response.json()
         machine = response["machine"]
 
         self.run_data["machine"] = machine
-        response = requests.post(f'{self.m_host}/api/render', json=machine)
+        response = requests.post(f'{self.m_host}/api/renderText', json=machine)
         temp = response.text
         temp = temp.replace("\\n","")
         temp = temp.replace("\\","")
-        temp = temp[1:-1] #strip quotes
+        temp = temp[2:-2] #strip quotes
         s = graphviz.Source(temp, filename="test.gv", format="png")
         s.render()
 
@@ -894,8 +893,8 @@ class BasicGameLevel:
 
         for c in collisions:
             sprite, other = c
-            formatted_col.append({"actor":{"uuid": sprite.id, "stype": g1},
-                                  "actee":{"uuid": other.id,  "stype": g2}})
+            formatted_col.append({"collider1":{"uUID": sprite.id, "tag": g1},
+                                  "collider2":{"uUID": other.id,  "tag": g2}})
         return formatted_col
 
     def add_score(self, score):
@@ -938,6 +937,8 @@ class BasicGameLevel:
         if isinstance(action, int):
             action = Action(action)
 
+        print(action)
+
         # This is required for game-updates to work properly
         self.time += 1
 
@@ -972,12 +973,13 @@ class BasicGameLevel:
             s.update(self)
 
         # Handle Collision Effects
-        collisions = self._event_handling()
+        collisions = self._event_handling()#TODO remove de-spawning/creating that happens here
 
-        self._send_to_mach(collisions)
+        events = [str(action)]
+        self._send_to_mach(collisions, events) 
 
         # Iterate Over Termination Criteria
-        self._check_terminations()
+        self._check_terminations() # TODO replace with machinations termination conditions
 
         self.last_state = None
 
