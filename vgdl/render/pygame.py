@@ -29,7 +29,8 @@ class PygameRenderer:
 
         w, h = self.screen_dims
         #TODO change hardcode
-        self.display_dims = (w + 100, h)
+        diag_height = h
+        self.display_dims = (w, h + diag_height)
 
         # The screen surface will be used for drawing on
         # It will be displayed on the `display` surface, possibly magnified
@@ -44,6 +45,8 @@ class PygameRenderer:
             self.screen = pygame.Surface(self.screen_dims)
             self.screen.fill((255, 255, 255))
             self.background = self.screen.copy()
+            self.big_dims = self.display_dims
+            self.big_screen = pygame.Surface(self.big_dims) 
             #self.display = pygame.display.set_mode(self.display_dims, pygame.RESIZABLE, 32)
             self.display = pygame.display.set_mode((self.display_dims))
             title_prefix = 'VGDL'
@@ -68,10 +71,19 @@ class PygameRenderer:
     def update_display(self):
         # TODO this could be quicker for headless
         graphImg = pygame.image.load('test.gv.png')
-        graphImg = pygame.transform.scale(graphImg, (100, self.display_dims[1]))
-        rect = graphImg.get_rect()
-        self.screen.blit(graphImg, rect)
-        pygame.transform.scale(self.screen, self.display_dims, self.display)
+        half_big_height = int(self.big_dims[1]/2)
+        graphImg = pygame.transform.scale(graphImg, (self.big_dims[0], half_big_height))
+        g_rect = graphImg.get_rect()
+        g_rect = g_rect.move((0, half_big_height))
+
+        #pygame.transform.scale(self.screen, , self.display)
+        temp_screen = pygame.transform.scale(self.screen, (self.big_dims[0], half_big_height))
+        s_rect = temp_screen.get_rect()
+        self.big_screen.blit(temp_screen, s_rect)
+
+        self.big_screen.blit(graphImg, g_rect)
+
+        pygame.transform.scale(self.big_screen, self.display_dims, self.display)
         pygame.display.update()
 
 
