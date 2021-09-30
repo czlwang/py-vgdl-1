@@ -12,8 +12,9 @@ import gym
 class HumanController:
     def __init__(self, env_name, trace_path=None, fps=15, machinations_host="", graph_xml=""):
         self.env_name = env_name
-        self.env = gym.make(env_name)
-        self.env.load_mach(machinations_host.strip('/'), graph_xml)
+        machination_host = machinations_host.strip('/')
+        self.env = gym.make(env_name, machinations_host=machination_host.strip('/'), graph_xml=graph_xml)
+  
         #import pdb; pdb.set_trace()
         if not env_name.startswith('vgdl'):
             logger.debug('Assuming Atari env, enable AtariObservationWrapper')

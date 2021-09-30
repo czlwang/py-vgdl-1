@@ -38,9 +38,6 @@ class VGDLEnv(gym.Env):
             self.loadGame(game_desc, level_desc)
 
 
-    def load_mach(self, mach_host, graph_xml):
-        self.game.load_mach(mach_host, graph_xml)
-
     def loadGame(self, game_desc, level_desc, **kwargs):
 
         self.game_desc = game_desc
@@ -49,7 +46,7 @@ class VGDLEnv(gym.Env):
 
         # Need to build a sample level to get the available actions and screensize....
         domain = vgdl.VGDLParser().parse_game(self.game_desc, **self.game_args)
-        self.game = domain.build_level(self.level_desc)
+        self.game = domain.build_level(self.level_desc, **self.game_args)
 
         self.score_last = self.game.score
 

@@ -536,14 +536,15 @@ class BasicGame:
                     self.resources_limits[res_type] = args['limit']
                 self.notable_resources.append(res_type)
 
-    def build_level(self, lstr):
+    def build_level(self, lstr, **kwargs):
         # TODO delegate this to a level parser
         lines = [l for l in lstr.split("\n") if len(l) > 0]
         lengths = [len(l) for l in lines]
         assert min(lengths) == max(lengths), "Inconsistent line lengths."
 
         level = BasicGameLevel(self, copy.deepcopy(self.domain_registry),
-                               lstr, width=lengths[0], height=len(lines))
+                               lstr, width=lengths[0], height=len(lines),
+                               graph_xml=kwargs["graph_xml"], machinations_host=kwargs["machinations_host"])
 
         # create sprites
         for row, l in enumerate(lines):
@@ -551,7 +552,7 @@ class BasicGame:
                 key = self.char_mapping.get(c, None)
                 if key is not None:
                     pos = (col * self.block_size, row * self.block_size)
-                    #import pdb; pdb.set_trace()
+                    import pdb; pdb.set_trace()
                     level.create_sprites(key, pos)
 
         # TODO find a prettier way to drop this, should be after creating
@@ -598,7 +599,8 @@ class BasicGameLevel:
     This regroups all the components of a game's dynamics, after parsing.
     """
 
-    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0, title=None):
+    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0, title=None,
+                 machinations_host=None, graph_xml=None):
         self.domain = domain
         self.sprite_registry = sprite_registry
         self.levelstring = levelstring
@@ -626,6 +628,8 @@ class BasicGameLevel:
 
         self.last_state = None
         self.m_host = None
+
+        self.load_mach(machinations_host, graph_xml)
 
     def load_mach(self, mach_host, xml_graph_path):
         self.m_host = mach_host.strip('/')
@@ -722,6 +726,7 @@ class BasicGameLevel:
                                                     size=(self.block_size, self.block_size),
                                                     rng=self.random_generator)
 
+        import pdb; pdb.set_trace()
         self.is_stochastic = self.domain.is_stochastic or sprite and sprite.is_stochastic
 
         return sprite
@@ -805,7 +810,6 @@ class BasicGameLevel:
         self.run_data["collisions"] = collisions
         self.run_data["events"] = events 
         response = requests.post(f'{self.m_host}/api/run', json=self.run_data)
-        print(response._content)
         response = response.json()
         machine = response["machine"]
 
@@ -815,7 +819,7 @@ class BasicGameLevel:
         temp = temp.replace("\\n","")
         temp = temp.replace("\\","")
         temp = temp[2:-2] #strip quotes
-        s = graphviz.Source(temp, filename="test.gv", format="png")
+        s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
         s.render()
 
     def _event_handling(self):
