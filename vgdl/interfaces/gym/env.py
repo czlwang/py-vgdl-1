@@ -126,7 +126,7 @@ class VGDLEnv(gym.Env):
 
         if self.renderer is None:
             from vgdl.render import PygameRenderer
-            self.renderer = PygameRenderer(self.game, self.render_block_size)
+            self.renderer = PygameRenderer(self.game, self.render_block_size, visualize_diag=self.game.visualize_diag)
             self.renderer.init_screen(headless)
 
         self.renderer.draw_all()

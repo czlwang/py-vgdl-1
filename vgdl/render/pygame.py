@@ -9,17 +9,19 @@ import numpy as np
 
 
 class PygameRenderer:
-    def __init__(self, game, block_size, render_sprites=True):
+    def __init__(self, game, block_size, render_sprites=True, visualize_diag=False):
+        #import pdb; pdb.set_trace()
         self.game = game
         # In pixels
         self.block_size = block_size
         self.screen_dims = (game.width * self.block_size, game.height * self.block_size)
         self.render_sprites = render_sprites
+        self.visualize_diag = visualize_diag
         if self.render_sprites:
             self.sprite_cache = SpriteLibrary.default()
 
 
-    def init_screen(self, headless, title=None):
+    def init_screen(self, headless, title=None, visualize_diag=False):
         self.headless = headless
         # Right now display_dims and screen_dims are the same,
         # Likewise screen and display are interchangeable, for now.
@@ -29,8 +31,10 @@ class PygameRenderer:
 
         w, h = self.screen_dims
         #TODO change hardcode
-        diag_height = h
-        self.display_dims = (w, h + diag_height)
+        diagram_height = h
+        self.display_dims = (w, h)
+        if self.visualize_diag:
+            self.display_dims = (w, h + diagram_height)
 
         # The screen surface will be used for drawing on
         # It will be displayed on the `display` surface, possibly magnified
@@ -70,18 +74,22 @@ class PygameRenderer:
 
     def update_display(self):
         # TODO this could be quicker for headless
-        graphImg = pygame.image.load('test.gv.png')
-        half_big_height = int(self.big_dims[1]/2)
-        graphImg = pygame.transform.scale(graphImg, (self.big_dims[0], half_big_height))
-        g_rect = graphImg.get_rect()
-        g_rect = g_rect.move((0, half_big_height))
-
         #pygame.transform.scale(self.screen, , self.display)
-        temp_screen = pygame.transform.scale(self.screen, (self.big_dims[0], half_big_height))
+        screen_height = self.big_dims[1]
+        import pdb; pdb.set_trace()
+        if self.visualize_diag:
+            screen_height = int(self.big_dims[1]/2)
+
+        if self.visualize_diag:
+            graphImg = pygame.image.load('test.gv.png')
+            graphImg = pygame.transform.scale(graphImg, (self.big_dims[0], screen_height))
+            g_rect = graphImg.get_rect()
+            g_rect = g_rect.move((0, screen_height))
+            self.big_screen.blit(graphImg, g_rect)
+
+        temp_screen = pygame.transform.scale(self.screen, (self.big_dims[0], screen_height))
         s_rect = temp_screen.get_rect()
         self.big_screen.blit(temp_screen, s_rect)
-
-        self.big_screen.blit(graphImg, g_rect)
 
         pygame.transform.scale(self.big_screen, self.display_dims, self.display)
         pygame.display.update()

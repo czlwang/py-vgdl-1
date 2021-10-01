@@ -544,7 +544,8 @@ class BasicGame:
 
         level = BasicGameLevel(self, copy.deepcopy(self.domain_registry),
                                lstr, width=lengths[0], height=len(lines),
-                               graph_xml=kwargs["graph_xml"], machinations_host=kwargs["machinations_host"])
+                               graph_xml=kwargs["graph_xml"], machinations_host=kwargs["machinations_host"],
+                               visualize_diag=kwargs["visualize_diag"])
 
         # create sprites
         for row, l in enumerate(lines):
@@ -552,7 +553,6 @@ class BasicGame:
                 key = self.char_mapping.get(c, None)
                 if key is not None:
                     pos = (col * self.block_size, row * self.block_size)
-                    import pdb; pdb.set_trace()
                     level.create_sprites(key, pos)
 
         # TODO find a prettier way to drop this, should be after creating
@@ -599,8 +599,10 @@ class BasicGameLevel:
     This regroups all the components of a game's dynamics, after parsing.
     """
 
-    def __init__(self, domain: BasicGame, sprite_registry, levelstring, width, height, seed=0, title=None,
-                 machinations_host=None, graph_xml=None):
+    def __init__(self, domain: BasicGame, sprite_registry, levelstring, 
+                 width, height, seed=0, title=None,
+                 machinations_host=None, graph_xml=None,
+                 visualize_diag=False):
         self.domain = domain
         self.sprite_registry = sprite_registry
         self.levelstring = levelstring
@@ -609,6 +611,7 @@ class BasicGameLevel:
         self.block_size = domain.block_size
         self.screensize = (self.width * self.block_size, self.height * self.block_size)
         self.title = title
+        self.visualize_diag = visualize_diag
 
         # Random state
         self.seed = seed
@@ -814,13 +817,15 @@ class BasicGameLevel:
         machine = response["machine"]
 
         self.run_data["machine"] = machine
-        response = requests.post(f'{self.m_host}/api/renderText', json=machine)
-        temp = response.text
-        temp = temp.replace("\\n","")
-        temp = temp.replace("\\","")
-        temp = temp[2:-2] #strip quotes
-        s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
-        s.render()
+        if self.visualize_diag:
+            response = requests.post(f'{self.m_host}/api/renderText', json=machine)
+            temp = response.text
+            temp = temp.replace("\\n","")
+            temp = temp.replace("\\","")
+            temp = temp[2:-2] #strip quotes
+
+            s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
+            s.render()
 
     def _event_handling(self):
         # TODO refactor lastcollisions, it doesn't seem very useful anymore

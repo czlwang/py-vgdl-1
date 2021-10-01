@@ -10,10 +10,12 @@ import gym
 
 
 class HumanController:
-    def __init__(self, env_name, trace_path=None, fps=15, machinations_host="", graph_xml=""):
+    def __init__(self, env_name, trace_path=None, fps=15, 
+                 machinations_host="", graph_xml="", visualize_diag=False):
         self.env_name = env_name
         machination_host = machinations_host.strip('/')
-        self.env = gym.make(env_name, machinations_host=machination_host.strip('/'), graph_xml=graph_xml)
+        self.env = gym.make(env_name, machinations_host=machination_host.strip('/'), graph_xml=graph_xml,
+                            visualize_diag=visualize_diag)
   
         #import pdb; pdb.set_trace()
         if not env_name.startswith('vgdl'):
