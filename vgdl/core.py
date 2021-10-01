@@ -729,7 +729,13 @@ class BasicGameLevel:
                                                     size=(self.block_size, self.block_size),
                                                     rng=self.random_generator)
 
-        import pdb; pdb.set_trace()
+        sprite_event = f'{key}_init'
+        response = self._send_event_to_mach(sprite_event)
+        generatedResources = response["generatedResources"]
+        if len(generatedResources) > 0:
+            resource = generatedResources[0]
+        if key=="base":
+            import pdb; pdb.set_trace()
         self.is_stochastic = self.domain.is_stochastic or sprite and sprite.is_stochastic
 
         return sprite
@@ -808,6 +814,19 @@ class BasicGameLevel:
             if k in ['sprites']: continue
             setattr(self, k, v)
 
+    def _send_event_to_mach(self, event):
+        return self._send_to_mach([], [event])
+
+    def _visualize_rule_diag(self):
+        response = requests.post(f'{self.m_host}/api/renderText', json=self.run_data["machine"])
+        temp = response.text
+        temp = temp.replace("\\n","")
+        temp = temp.replace("\\","")
+        temp = temp[2:-2] #strip quotes
+
+        s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
+        s.render()
+
     def _send_to_mach(self, collisions, events):
         self.run_data["activeNodes"] = [] #should always be empty
         self.run_data["collisions"] = collisions
@@ -818,14 +837,9 @@ class BasicGameLevel:
 
         self.run_data["machine"] = machine
         if self.visualize_diag:
-            response = requests.post(f'{self.m_host}/api/renderText', json=machine)
-            temp = response.text
-            temp = temp.replace("\\n","")
-            temp = temp.replace("\\","")
-            temp = temp[2:-2] #strip quotes
-
-            s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
-            s.render()
+            self._visualize_rule_diag()
+        
+        return response
 
     def _event_handling(self):
         # TODO refactor lastcollisions, it doesn't seem very useful anymore

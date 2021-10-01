@@ -76,7 +76,6 @@ class PygameRenderer:
         # TODO this could be quicker for headless
         #pygame.transform.scale(self.screen, , self.display)
         screen_height = self.big_dims[1]
-        import pdb; pdb.set_trace()
         if self.visualize_diag:
             screen_height = int(self.big_dims[1]/2)
 
