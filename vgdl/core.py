@@ -553,7 +553,7 @@ class BasicGame:
                 key = self.char_mapping.get(c, None)
                 if key is not None:
                     pos = (col * self.block_size, row * self.block_size)
-                    level.create_sprites(key, pos)
+                    level.init_sprites(key, pos)
 
         # TODO find a prettier way to drop this, should be after creating
         # sprites though
@@ -722,28 +722,35 @@ class BasicGameLevel:
 
     def create_sprite(self, key, pos, id=None) -> Optional['VGDLSprite']:
         # assert self.num_sprites < self.domain.MAX_SPRITES, 'Sprite limit reached'
-
+        print("create_sprite")
         sclass, args, stypes = self.sprite_registry.get_sprite_def(key)
 
         sprite = self.sprite_registry.create_sprite(key, pos=pos, id=id,
                                                     size=(self.block_size, self.block_size),
                                                     rng=self.random_generator)
 
-        sprite_event = f'{key}_init'
-        response = self._send_event_to_mach(sprite_event)
-        generatedResources = response["generatedResources"]
-        if len(generatedResources) > 0:
-            resource = generatedResources[0]
-        if key=="base":
-            import pdb; pdb.set_trace()
+        print(sprite)
         self.is_stochastic = self.domain.is_stochastic or sprite and sprite.is_stochastic
 
         return sprite
 
-    def create_sprites(self, keys, pos) -> List['VGDLSprite']:
+    def init_sprites(self, keys, pos) -> List['VGDLSprite']:
         # Splitting it makes mypy happy
         filter_nones = lambda l: filter(lambda el: el, l)
-        return list(filter_nones(self.create_sprite(key, pos) for key in keys))
+
+        created_sprites = []
+        for key in keys:
+            sprite_event = f'{key}_init'
+            response = self._send_event_to_mach(sprite_event)
+
+            generatedResources = response["generatedResources"]
+            id=None
+            if len(generatedResources) > 0:
+                resource = generatedResources[0]
+                id = resource["uUID"]
+            self.create_sprite(key, pos, id=id)
+
+        return list(filter_nones(created_sprites))
 
     def kill_sprite(self, sprite: 'VGDLSprite'):
         self.kill_list.append(sprite)
@@ -827,6 +834,21 @@ class BasicGameLevel:
         s = graphviz.Source(temp, filename="test.gv", format="png") # TODO pass this instead of writing it
         s.render()
 
+    def _format_collisions(self):
+        collisions = []
+
+        all_sprites = list(self.sprite_registry.sprites())
+        for sprite1 in all_sprites:
+            s1_collisions = sprite1.rect.collidelistall(all_sprites) 
+            collisions += [(sprite1, all_sprites[other]) for other in s1_collisions]
+
+        collisions = filter(lambda x: x[0].id != x[1].id, collisions)
+
+        formatted_col = map(lambda x: {"collider1":{"uUID": x[0].id, "tag": x[0].key},\
+                                       "collider2":{"uUID": x[1].id, "tag": x[1].key}}, collisions)
+        #formatted_col = [c for c in formatted_col if c["collider1"]["tag"] == "sam"] #TODO debug get rid of this
+        return list(formatted_col)
+
     def _send_to_mach(self, collisions, events):
         self.run_data["activeNodes"] = [] #should always be empty
         self.run_data["collisions"] = collisions
@@ -844,10 +866,11 @@ class BasicGameLevel:
     def _event_handling(self):
         # TODO refactor lastcollisions, it doesn't seem very useful anymore
         # stype -> sprites
-        collisions = []
         self.lastcollisions: Dict[str, List['VGDLSprite']] = {}
         ss = self.lastcollisions
         for effect in self.domain.collision_eff:
+            print(effect)
+#            import pdb; pdb.set_trace()
             g1 = effect.actor_stype
             g2 = effect.actee_stype
 
@@ -910,15 +933,6 @@ class BasicGameLevel:
                     self.add_score(effect.score)
                     if sprite not in self.kill_list:
                         effect(sprite, other, self)
-                        collisions.append((sprite, other))
-
-        formatted_col = []
-
-        for c in collisions:
-            sprite, other = c
-            formatted_col.append({"collider1":{"uUID": sprite.id, "tag": g1},
-                                  "collider2":{"uUID": other.id,  "tag": g2}})
-        return formatted_col
 
     def add_score(self, score):
         self.score += score
@@ -993,18 +1007,43 @@ class BasicGameLevel:
         # While loop because it can keep growing, for loops are fickle
         while self.update_queue:
             s = self.update_queue.popleft()
-            s.update(self)
+            s.update(self)#TODO remove de-spawning/creating that happens here
 
         # Handle Collision Effects
-        collisions = self._event_handling()#TODO remove de-spawning/creating that happens here
-
+        self._event_handling()
+        
+        collisions = self._format_collisions()
         events = [str(action)]
-        self._send_to_mach(collisions, events) 
+        response = self._send_to_mach(collisions, events) 
+        
+        self._update_game_state(response)
+        #if str(action)=="space":
+        #    import pdb; pdb.set_trace()
 
         # Iterate Over Termination Criteria
         self._check_terminations() # TODO replace with machinations termination conditions
 
         self.last_state = None
+
+    def _create_resource_sprite(self, resource):
+        id = resource["uUID"]
+        self.create_sprite(resource["tag"], self.sprite_registry.get_avatar().rect[:2], id=id) #NOTE: you have to know the tag name and you have to know the avatar position
+
+    def _kill_resource_sprite(self, resource):
+        id = resource["uUID"]
+        sprite = self.sprite_registry._sprite_by_id[id]
+        self.kill_sprite(sprite)
+
+    def _update_game_state(self, response):
+        new_resources = response["generatedResources"]
+        #iterate through new_resources and create 
+        #sprites in their correct spawning places
+        for n in new_resources:
+            self._create_resource_sprite(n)
+
+        killed_resources = response["killedResources"]
+        for k in killed_resources:
+            self._kill_resource_sprite(k)
 
     def _check_terminations(self):
         for t in self.domain.terminations:
