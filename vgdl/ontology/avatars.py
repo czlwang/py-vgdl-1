@@ -101,11 +101,12 @@ class HorizontalAvatar(MovingAvatar):
 
     @classmethod
     def declare_possible_actions(cls):
-        from pygame.locals import K_LEFT, K_RIGHT
+        from pygame.locals import K_LEFT, K_RIGHT, K_SPACE
         actions = {}
         actions["LEFT"] = Action(K_LEFT)
         actions["RIGHT"] = Action(K_RIGHT)
         actions["NO_OP"] = Action()
+        actions["SPACE"] = Action(K_SPACE)
         return actions
 
 
