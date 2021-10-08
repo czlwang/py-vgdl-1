@@ -2,7 +2,7 @@ BasicGame block_size=5
     SpriteSet
         background > Immovable img=oryx/space1 hidden=True
         base    > Immovable    color=WHITE img=oryx/space5
-        avatar  > FlakAvatar   stype=sam img=oryx/spaceship1
+        avatar  > HorizontalAvatar   stype=sam img=oryx/spaceship1
         missile > Missile
             sam  > orientation=UP    color=BLUE singleton=True img=oryx/bullet2
             bomb > orientation=DOWN  color=RED  speed=0.5 img=oryx/bullet2
@@ -28,9 +28,6 @@ BasicGame block_size=5
         avatar  EOS  > stepBack
         alien   EOS  > turnAround
         missile EOS  > killSprite
-
-        base bomb > killBoth
-        base sam > killBoth
 
         base   alien > killSprite
         avatar alien > killSprite scoreChange=-1
